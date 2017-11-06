@@ -1,6 +1,7 @@
 # Published Jan 2013
 # Revised Jan 2014 (to add new modules data)
 # Revised Nov 2017 (to add support for Vaillant vSmart authentication)
+# Forked from jabesq repo, added philippelt changes for file credentials
 # Author : Philippe Larduinat, philippelt@users.sourceforge.net
 # Public domain source code
 """

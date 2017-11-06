@@ -1,5 +1,6 @@
 # Published Jan 2013
 # Revised Jan 2014 (to add new modules data)
+# Revised Nov 2017 (to add support for Vaillant vSmart authentication)
 # Author : Philippe Larduinat, philippelt@users.sourceforge.net
 # Public domain source code
 """
@@ -12,24 +13,48 @@ PythonAPI Netatmo REST data access
 coding=utf-8
 """
 import time
-
+from os import getenv
+from os.path import expanduser, exists
+import json, time
+import pprint
 from smart_home.WeatherStation import WeatherStationData, DeviceList
 from smart_home.Camera import CameraData
 from smart_home.Thermostat import ThermostatData
+from smart_home.VaillantThermostat import VaillantThermostatData
 from smart_home import _BASE_URL, postRequest, NoDevice
 
-######################## USER SPECIFIC INFORMATION ######################
-
-# To be able to have a program accessing your netatmo data, you have to register your program as
-# a Netatmo app in your Netatmo account. All you have to do is to give it a name (whatever) and you will be
-# returned a client_id and secret that your app has to supply to access netatmo servers.
-
-_CLIENT_ID     = ""   # Your client ID from Netatmo app registration at http://dev.netatmo.com/dev/listapps
-_CLIENT_SECRET = ""   # Your client app secret   '     '
-_USERNAME      = ""   # Your netatmo account username
-_PASSWORD      = ""   # Your netatmo account password
-
 #########################################################################
+
+cred = {                       # You can hard code authentication information in the following lines
+        "CLIENT_ID"     : "",     #   Your client ID from Netatmo app registration at http://dev.netatmo.com/dev/listapps
+        "CLIENT_SECRET" : "",  #   Your client app secret   '     '
+        "USERNAME"      : "",       #   Your netatmo account username
+        "PASSWORD"      : "",        #   Your netatmo account password
+        "APP_VERSION"   : "",   # The app version
+        "USER_PREFIX"   : "",   # The user prefix
+        "SCOPE"         : ""
+        }
+
+# Other authentication setup management (optionals)
+
+CREDENTIALS = expanduser("~/.netatmo.credentials")
+
+def getParameter(key, default):
+    return getenv(key, default[key])
+
+# 2 : Override hard coded values with credentials file if any
+if exists(CREDENTIALS) :
+    with open(CREDENTIALS, "r") as f:
+        cred.update({k.upper():v for k,v in json.loads(f.read()).items()})
+
+# 3 : Override final value with content of env variables if defined
+_CLIENT_ID     = getParameter("CLIENT_ID", cred)
+_CLIENT_SECRET = getParameter("CLIENT_SECRET", cred)
+_USERNAME      = getParameter("USERNAME", cred)
+_PASSWORD      = getParameter("PASSWORD", cred)
+_APP_VERSION   = getParameter("APP_VERSION", cred)
+_USER_PREFIX   = getParameter("USER_PREFIX", cred)
+_SCOPE   = getParameter("SCOPE", cred)
 
 
 # Common definitions
@@ -59,7 +84,9 @@ class ClientAuth:
                        clientSecret=_CLIENT_SECRET,
                        username=_USERNAME,
                        password=_PASSWORD,
-                       scope="read_station"):
+                       scope=_SCOPE,
+                       app_version=_APP_VERSION,
+                       user_prefix=_USER_PREFIX):
         postParams = {
                 "grant_type": "password",
                 "client_id": clientId,
@@ -68,6 +95,12 @@ class ClientAuth:
                 "password": password,
                 "scope": scope
                 }
+
+        if user_prefix:
+          postParams.update({"user_prefix":user_prefix})
+        if app_version:
+          postParams.update({"app_version":app_version})
+        pprint.pprint(postParams)
         resp = postRequest(_AUTH_REQ, postParams)
         self._clientId = clientId
         self._clientSecret = clientSecret
@@ -149,3 +182,4 @@ if __name__ == "__main__":
         print("lnetatmo.py : OK")
 
     exit(0)
+

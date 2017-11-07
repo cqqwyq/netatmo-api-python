@@ -17,7 +17,6 @@ import time
 from os import getenv
 from os.path import expanduser, exists
 import json, time
-import pprint
 from smart_home.WeatherStation import WeatherStationData, DeviceList
 from smart_home.Camera import CameraData
 from smart_home.Thermostat import ThermostatData
@@ -101,7 +100,6 @@ class ClientAuth:
           postParams.update({"user_prefix":user_prefix})
         if app_version:
           postParams.update({"app_version":app_version})
-        pprint.pprint(postParams)
         resp = postRequest(_AUTH_REQ, postParams)
         self._clientId = clientId
         self._clientSecret = clientSecret

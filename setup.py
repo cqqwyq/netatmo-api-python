@@ -6,7 +6,7 @@ from distutils.core import setup
 
 setup(
     name='lnetatmo',
-    version='0.9.2-vaillant',  # Should be updated with new versions
+    version='0.9.2.1-vaillant',  # Should be updated with new versions
     author='Samuel Dumont, forked from Philippe Larduinat',
     author_email='samuel@dumont.ovh, philippelt@users.sourceforge.net',
     py_modules=['lnetatmo'],

@@ -27,6 +27,8 @@ class CameraData:
             "size": size
             }
         resp = postRequest(_GETHOMEDATA_REQ, postParams)
+        if 'body' not in resp:
+            raise URLError('No data returned by Netatmo server')
         self.rawData = resp['body']
         self.homes = {d['id']: d for d in self.rawData['homes']}
         if not self.homes:
@@ -47,18 +49,20 @@ class CameraData:
                 self.types[nameHome] = dict()
             for p in self.rawData['homes'][i]['persons']:
                 self.persons[p['id']] = p
-            for e in self.rawData['homes'][i]['events']:
-                if e['type'] == 'outdoor':
-                    if e['camera_id'] not in self.outdoor_events:
-                        self.outdoor_events[e['camera_id']] = dict()
-                    self.outdoor_events[e['camera_id']][e['time']] = e
-                elif e['type'] != 'outdoor':
-                    if e['camera_id'] not in self.events:
-                        self.events[e['camera_id']] = dict()
-                    self.events[e['camera_id']][e['time']] = e
+            if 'events' in self.rawData['homes'][i]:
+                self.default_home = self.rawData['homes'][i]['name']
+                for e in self.rawData['homes'][i]['events']:
+                    if e['type'] == 'outdoor':
+                        if e['camera_id'] not in self.outdoor_events:
+                            self.outdoor_events[e['camera_id']] = dict()
+                        self.outdoor_events[e['camera_id']][e['time']] = e
+                    elif e['type'] != 'outdoor':
+                        if e['camera_id'] not in self.events:
+                            self.events[e['camera_id']] = dict()
+                        self.events[e['camera_id']][e['time']] = e
             for c in self.rawData['homes'][i]['cameras']:
                 self.cameras[nameHome][c['id']] = c
-                if c['type'] == 'NACamera' and 'modules' in c :
+                if c['type'] == 'NACamera' and 'modules' in c:
                     for m in c['modules']:
                         self.modules[m['id']] = m
                         self.modules[m['id']]['cam_id'] = c['id']
@@ -70,7 +74,6 @@ class CameraData:
         for camera in self.outdoor_events:
             self.outdoor_lastEvent[camera] = self.outdoor_events[camera][
                 sorted(self.outdoor_events[camera])[-1]]
-        self.default_home = list(self.homes.values())[0]['name']
         if self.modules != {}:
             self.default_module = list(self.modules.values())[0]['name']
         else:
@@ -300,7 +303,7 @@ class CameraData:
 
     def knownPersonsNames(self):
         names = []
-        for p_id,p in self._knownPersons().items():
+        for p_id, p in self._knownPersons().items():
             names.append(p['pseudo'])
         return names
 
@@ -390,10 +393,11 @@ class CameraData:
         except TypeError:
             print("outdoormotionDetected: Camera name or home is unknown")
             return False
-        if self.lastEvent[cam_id]['type'] == 'movement':
-            if self.lastEvent[cam_id]['video_status'] == 'recording' and\
-             self.lastEvent[cam_id]['time'] + offset > int(time.time()):
-                return True
+        if cam_id in self.lastEvent:
+            if self.lastEvent[cam_id]['type'] == 'movement':
+                if self.lastEvent[cam_id]['video_status'] == 'recording' and\
+                 self.lastEvent[cam_id]['time'] + offset > int(time.time()):
+                    return True
         return False
 
     def humanDetected(self, home=None, camera=None, offset=0):
